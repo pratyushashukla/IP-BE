@@ -1,0 +1,21 @@
+# Node modules
+node_modules/
+
+# Logs
+
+# Environment variables
+.env
+
+# IDE-specific files
+.vscode/
+
+# Debugger and runtime files
+npm-debug.log*
+pids/
+*.pid
+
+
+# Generated files
+coverage/
+dist/
+build/
