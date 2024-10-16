@@ -20,7 +20,7 @@ executeMiddleware(app);
 //Check Auth for each API
 const allowedURLs = ["/api/v1/auth"];
 
-const allowedEndpoints = ["/login", "/signup"];
+const allowedEndpoints = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
 const isAllowedURL = (req) => {
   return allowedURLs.some((baseURL) =>
