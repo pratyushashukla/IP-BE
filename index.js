@@ -28,40 +28,64 @@ const isAllowedURL = (req) => {
   );
 };
 
+// Function to check for session timeout (inactivity)
+const checkSessionTimeout = async (userData) => {
+  const currentTime = Date.now();
+  const lastActivity = userData.lastActivityTime || currentTime;
+  const timeoutLimit = 30 * 60 * 1000; // 30 minutes timeout
+
+  if (currentTime - lastActivity > timeoutLimit) {
+    // Invalidate the session due to inactivity
+    userData.tokenStatus = false;
+    userData.tokenCreatedAt = null;
+    await userData.save();
+    return { status: false, message: "Session expired due to inactivity." };
+  }
+
+  // Update last activity time if the session is still valid
+  userData.lastActivityTime = currentTime;
+  await userData.save();
+  return { status: true };
+};
+
+
 // Check JWT for each request
 const handleAuthToken = async (req, res, next) => {
-  if (req.headers?.authtoken) {
-    const result = auth.verifyToken(req.headers?.authtoken);
+  const authToken = req.headers?.authtoken;
+  if (!authToken) {
+    return res.status(401).json({ message: "Missing auth token in headers" });
+  }
+  const result = auth.verifyToken(authToken);
 
-    if (result?.status === true) {
-      try {
-        const userData = await User.findById({
-          _id: result.payload?.userId,
-        }).exec();
-        if (userData?.tokenStatus) {
-          global.user = userData;
-          next();
-        } else {
-          res
-            .status(404)
-            .json({ message: "User does not exist or is already logged out" });
-        }
-      } catch (error) {
-        console.log("Error while getting user info", error);
-        res.status(500).json({
-          message: "Unable to find user information due to technical error",
-          error: error.message,
-        });
-      }
-    } else {
-      res
-        .status(401)
-        .json({ message: result.message ? result.message : "Invalid Token" });
+  if (!result?.status) {
+    return res.status(401).json({ message: result.message ? result.message : "Invalid Token" });
+  }
+
+  try {
+    const userData = await User.findById({ _id: result.payload?.userId }).exec();
+    
+    if (!userData || !userData.tokenStatus) {
+      return res.status(404).json({ message: "User does not exist or is already logged out" });
     }
-  } else {
-    res.status(401).json({ message: "Missing auth token in headers" });
+    // Check session timeout 
+    const sessionCheck = await checkSessionTimeout(userData);
+    if (!sessionCheck.status) {
+      return res.status(401).json({ message: sessionCheck.message });
+    }
+    // refresh the token to extend the session
+    const newToken = auth.createToken(userData._id, userData.email);
+    res.setHeader('authtoken', `${newToken.token}`);
+    global.user = userData;
+    next();
+  } catch (error) {
+    console.log("Error while getting user info", error);
+    res.status(500).json({
+      message: "Unable to find user information due to technical error",
+      error: error.message,
+    });
   }
 };
+
 
 // above functions are called here
 app.use(async function (req, res, next) {
