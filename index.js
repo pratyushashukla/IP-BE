@@ -28,6 +28,27 @@ const isAllowedURL = (req) => {
   );
 };
 
+// Function to check for session timeout (inactivity)
+const checkSessionTimeout = async (userData) => {
+  const currentTime = Date.now();
+  const lastActivity = userData.lastActivityTime || currentTime;
+  const timeoutLimit = 30 * 60 * 1000; // 30 minutes timeout
+
+  if (currentTime - lastActivity > timeoutLimit) {
+    // Invalidate the session due to inactivity
+    userData.tokenStatus = false;
+    userData.tokenCreatedAt = null;
+    await userData.save();
+    return { status: false, message: "Session expired due to inactivity." };
+  }
+
+  // Update last activity time if the session is still valid
+  userData.lastActivityTime = currentTime;
+  await userData.save();
+  return { status: true };
+};
+
+
 // Check JWT for each request
 const handleAuthToken = async (req, res, next) => {
   if (req.headers?.authtoken) {
@@ -35,16 +56,19 @@ const handleAuthToken = async (req, res, next) => {
 
     if (result?.status === true) {
       try {
-        const userData = await User.findById({
-          _id: result.payload?.userId,
-        }).exec();
+        const userData = await User.findById({ _id: result.payload?.userId }).exec();
+
         if (userData?.tokenStatus) {
+          // Check session timeout 
+          const sessionCheck = await checkSessionTimeout(userData);
+          if (!sessionCheck.status) {
+            return res.status(401).json({ message: sessionCheck.message });
+          }
+
           global.user = userData;
           next();
         } else {
-          res
-            .status(404)
-            .json({ message: "User does not exist or is already logged out" });
+          res.status(404).json({ message: "User does not exist or is already logged out" });
         }
       } catch (error) {
         console.log("Error while getting user info", error);
@@ -54,14 +78,13 @@ const handleAuthToken = async (req, res, next) => {
         });
       }
     } else {
-      res
-        .status(401)
-        .json({ message: result.message ? result.message : "Invalid Token" });
+      res.status(401).json({ message: result.message ? result.message : "Invalid Token" });
     }
   } else {
     res.status(401).json({ message: "Missing auth token in headers" });
   }
 };
+
 
 // above functions are called here
 app.use(async function (req, res, next) {
