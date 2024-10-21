@@ -17,4 +17,10 @@ router.patch("/forgot-password", authController.forgotPassword);
 // reset password
 router.patch("/reset-password", authController.resetPassword);
 
+// verify code
+router.patch("/verify-code", authController.verifyCode);
+
+// resent code
+router.patch("/resend-code", authController.resendCode);
+
 export default router;

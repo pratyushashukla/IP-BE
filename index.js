@@ -20,7 +20,14 @@ executeMiddleware(app);
 //Check Auth for each API
 const allowedURLs = ["/api/v1/auth"];
 
-const allowedEndpoints = ["/login", "/signup", "/forgot-password", "/reset-password"];
+const allowedEndpoints = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-code",
+  "/resend-code"
+];
 
 const isAllowedURL = (req) => {
   return allowedURLs.some((baseURL) =>
@@ -48,7 +55,6 @@ const checkSessionTimeout = async (userData) => {
   return { status: true };
 };
 
-
 // Check JWT for each request
 const handleAuthToken = async (req, res, next) => {
   const authToken = req.headers?.authtoken;
@@ -58,23 +64,29 @@ const handleAuthToken = async (req, res, next) => {
   const result = auth.verifyToken(authToken);
 
   if (!result?.status) {
-    return res.status(401).json({ message: result.message ? result.message : "Invalid Token" });
+    return res
+      .status(401)
+      .json({ message: result.message ? result.message : "Invalid Token" });
   }
 
   try {
-    const userData = await User.findById({ _id: result.payload?.userId }).exec();
-    
+    const userData = await User.findById({
+      _id: result.payload?.userId,
+    }).exec();
+
     if (!userData || !userData.tokenStatus) {
-      return res.status(404).json({ message: "User does not exist or is already logged out" });
+      return res
+        .status(404)
+        .json({ message: "User does not exist or is already logged out" });
     }
-    // Check session timeout 
+    // Check session timeout
     const sessionCheck = await checkSessionTimeout(userData);
     if (!sessionCheck.status) {
       return res.status(401).json({ message: sessionCheck.message });
     }
     // refresh the token to extend the session
     const newToken = auth.createToken(userData._id, userData.email);
-    res.setHeader('authtoken', `${newToken.token}`);
+    res.setHeader("authtoken", `${newToken.token}`);
     global.user = userData;
     next();
   } catch (error) {
@@ -85,7 +97,6 @@ const handleAuthToken = async (req, res, next) => {
     });
   }
 };
-
 
 // above functions are called here
 app.use(async function (req, res, next) {

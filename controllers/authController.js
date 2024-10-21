@@ -188,3 +188,79 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ message: "Server error. Please try again." });
   }
 };
+
+export const verifyCode = async (req, res) => {
+  const { code } = req.body;
+
+  try {
+    const user = await User.findOne({
+      resetPasswordToken: code,
+      resetPasswordExpire: { $gt: Date.now() }, // Check if the code is still valid
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired code." });
+    }
+
+    // Code is valid, allow the user to proceed
+    res.status(200).json({ message: "Code verified. Proceed to reset password." });
+  } catch (err) {
+    res.status(500).json({ message: "Server error. Please try again." });
+  }
+};
+
+// Resend Verification Code Endpoint
+export const resendCode = async (req, res) => {
+  const { email } = req.body;
+
+  let obj = {};
+  let verificationCode, existingUser;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "Email not found" });
+    }
+
+    // Generate a unique 6-digit verification code
+    const generateUniqueCode = async () => {
+      do {
+        verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        existingUser = await User.findOne({ resetPasswordToken: verificationCode });
+      } while (existingUser);
+
+      return verificationCode;
+    };
+
+    // Generate the unique verification code
+    const newCode = await generateUniqueCode();
+
+    // Save the new code and its expiry to the user's document
+    obj.resetPasswordToken = newCode;
+    obj.resetPasswordExpire = Date.now() + 3600000; // 1 hour
+
+    await User.updateOne({ email: email }, obj);
+
+    try {
+      // Send new verification code via email
+      const sentMail = await nodemailer.sendPasswordResetCode(email, newCode);
+
+      if (sentMail.accepted.length > 0) {
+        return res.status(200).json({ message: "New verification code sent to your email." });
+      } else {
+        throw new Error("Email failed to send");
+      }
+    } catch (err) {
+      // Rollback the action: clear resetPasswordToken and resetPasswordExpire if email fails
+      obj.resetPasswordToken = user.resetPasswordToken;
+      obj.resetPasswordExpire = user.resetPasswordExpire;
+      // Save rollback changes
+      await User.updateOne({ email: email }, obj);
+      return res
+        .status(500)
+        .json({ message: "Failed to send verification code. Please try again.", error: err });
+    }
+  } catch (err) {
+    return res.status(500).json({ message: "Server error. Please try again." });
+  }
+};
