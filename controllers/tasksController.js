@@ -236,3 +236,43 @@ export const getOverdueTasks = async (req, res) => {
   }
 };
 
+// Assign Task to One or Multiple Inmates
+export const assignTaskToInmates = async (req, res) => {
+  const { taskId, inmateIds } = req.body;
+
+  // Validation: Ensure taskId and inmateIds are provided
+  if (!taskId || !inmateIds || !inmateIds.length) {
+    return res.status(400).json({ message: 'Task ID and at least one inmate ID are required' });
+  }
+
+  try {
+    // Validate that the task exists
+    const task = await Tasks.findById(taskId);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Validate that each inmate exists
+    const inmates = await Inmate.find({ _id: { $in: inmateIds } });
+    if (inmates.length !== inmateIds.length) {
+      return res.status(404).json({ message: 'Assigned inmates not found' });
+    }
+
+    // Create TaskAssignment entries for each inmate
+    const assignments = inmateIds.map(inmateId => ({
+      taskId,
+      inmateId,
+      completionStatus: false,  // Initially, the task is not completed
+      progressNotes: 'Task assigned',
+    }));
+
+    // Save all assignments in bulk
+    await TaskAssignment.insertMany(assignments);
+
+    res.status(201).json({ message: 'Task assigned to inmates successfully', assignments });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+
