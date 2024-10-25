@@ -236,3 +236,28 @@ export const getOverdueTasks = async (req, res) => {
   }
 };
 
+// Update Task Status
+export const updateTaskStatus = async (req, res) => {
+  const { id } = req.params; // Task ID
+  const { status } = req.body; // New status
+  try {
+    // Find the task by ID
+    const task = await Tasks.findById(id);
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    // Update the task status
+    task.status = status;
+
+    // Save the updated task
+    await task.save();
+
+    // Send a success response with the updated task
+    res.status(200).json({ message: "Task status updated successfully", task });
+  } catch (error) {
+    // Handle any server error
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+

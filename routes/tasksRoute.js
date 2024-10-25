@@ -7,7 +7,8 @@ import {
     getTaskById,
     listTasksByParam,
     closeTask,
-    getOverdueTasks
+    getOverdueTasks,
+    updateTaskStatus
   } from '../controllers/tasksController.js';
 
 const router = express.Router();
@@ -35,3 +36,8 @@ router.patch('/:id/close', closeTask);
 
 // Get overdue tasks
 router.get('/overdue', getOverdueTasks);
+
+//Update Task Status
+router.patch('/:id/status', updateTaskStatus);
+
+export default router;
