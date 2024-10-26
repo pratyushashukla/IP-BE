@@ -28,15 +28,9 @@ const tasksSchema = new mongoose.Schema({
   dueDate: {
     type: Date, // Expected date for completing task
     required: true,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
   }
+},   {
+  timestamps: true,
 });
 
 // Middleware to update `updatedAt` automatically

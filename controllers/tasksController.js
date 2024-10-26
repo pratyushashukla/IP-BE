@@ -87,38 +87,74 @@ export const listTasks = async (req, res) => {
   }
 };
 
-// Update Task
+// Update Task API
 export const updateTask = async (req, res) => {
+  const { _id, title, description, startDate, dueDate, assignedBy, assignments, status } = req.body;
+
+  // Validation
+  if (!title || !startDate || !dueDate || !assignments) {
+    return res.status(400).json({
+      message: "Title, Start Date, Due Date, and Assignments are required",
+    });
+  }
+  if (new Date(dueDate) < new Date(startDate)) {
+    return res.status(400).json({ message: "Due Date cannot be before Start Date" });
+  }
+
   try {
-    const { title, description, startDate, dueDate } = req.body;
-
-    if (dueDate && new Date(dueDate) < new Date(startDate)) {
-      return res
-        .status(400)
-        .json({ message: "Due Date cannot be before Start Date" });
-    }
-
-    const updateData = {};
-    if (title !== undefined) updateData.title = title;
-    if (description !== undefined) updateData.description = description;
-    if (startDate !== undefined) updateData.startDate = startDate;
-    if (dueDate !== undefined) updateData.dueDate = dueDate;
-
-    const updatedTask = await Tasks.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true }
-    );
-
-    if (!updatedTask) {
+    // Check if task exists
+    const existingTask = await Tasks.findById(_id);
+    if (!existingTask) {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    res.status(200).json({ message: "Task updated successfully", updatedTask });
+    // Update task fields
+    existingTask.title = title;
+    existingTask.description = description;
+    existingTask.status = status;
+    existingTask.startDate = startDate;
+    existingTask.dueDate = dueDate;
+    existingTask.assignedBy = assignedBy ? new mongoose.Types.ObjectId(assignedBy) : null;
+    existingTask.updatedAt = Date.now();
+
+    // Save the updated task
+    await existingTask.save();
+
+    // Update task assignments
+    for (let assignment of assignments) {
+      const { _id: assignmentId, inmateId, completionStatus, progressNotes } = assignment;
+
+      // Convert inmateId to ObjectId
+      const inmateObjectId = inmateId ? new mongoose.Types.ObjectId(inmateId._id) : null;
+
+      // Check if the assignment already exists
+      let existingAssignment = await TaskAssignment.findById(assignmentId);
+
+      if (existingAssignment) {
+        // Update the existing assignment
+        existingAssignment.inmateId = inmateObjectId;
+        existingAssignment.completionStatus = completionStatus;
+        existingAssignment.progressNotes = progressNotes;
+        existingAssignment.updatedAt = Date.now();
+        await existingAssignment.save();
+      } else {
+        // Create a new assignment if it doesn't exist
+        const newAssignment = new TaskAssignment({
+          taskId: existingTask._id,
+          inmateId: inmateObjectId,
+          completionStatus,
+          progressNotes,
+        });
+        await newAssignment.save();
+      }
+    }
+
+    res.status(200).json({ message: "Task and assignments updated successfully", task: existingTask });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
 
 // Retrieve Individual Task with assigned inmates
 export const getTaskById = async (req, res) => {
