@@ -89,7 +89,7 @@ export const listTasks = async (req, res) => {
 
 // Update Task API
 export const updateTask = async (req, res) => {
-  const { _id, title, description, startDate, dueDate, assignedBy, assignments } = req.body;
+  const { _id, title, description, startDate, dueDate, assignedBy, assignments, status } = req.body;
 
   // Validation
   if (!title || !startDate || !dueDate || !assignments) {
@@ -111,6 +111,7 @@ export const updateTask = async (req, res) => {
     // Update task fields
     existingTask.title = title;
     existingTask.description = description;
+    existingTask.status = status;
     existingTask.startDate = startDate;
     existingTask.dueDate = dueDate;
     existingTask.assignedBy = assignedBy ? new mongoose.Types.ObjectId(assignedBy) : null;
