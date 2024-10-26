@@ -4,6 +4,7 @@ import * as auth from "./lib/auth.js";
 
 import userRoute from "./routes/userRoute.js";
 import authRoute from "./routes/authRoute.js";
+import tasksRoute from "./routes/tasksRoute.js";
 
 import User from "./models/userModel.js";
 import { connect } from "./config/dbconnection.js";
@@ -110,6 +111,7 @@ app.use(async function (req, res, next) {
 // Routes
 app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/users", userRoute);
+app.use("/api/v1/tasks", tasksRoute);
 
 //create connection
 connect();

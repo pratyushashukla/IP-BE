@@ -39,3 +39,5 @@ router.get('/overdue', getOverdueTasks);
 
 // Assign task to inmate(s) 
 router.patch('/:id/assign', assignTaskToInmates);
+
+export default router;
