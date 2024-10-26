@@ -203,7 +203,7 @@ export const deleteTask = async (req, res) => {
     }
 
     // Delete related TaskAssignment entries
-    await TaskAssignment.deleteMany({ taskId: id });
+    await TaskAssignment.deleteOne({ taskId: id });
 
     res
       .status(200)
