@@ -16,7 +16,7 @@ const tasksSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Pending', 'Active', 'Completed'],  // Task status
+    enum: ['Pending', 'In Progress', 'Completed'],  // Task status
     default: 'Pending',
   },
   startDate: {
@@ -28,15 +28,9 @@ const tasksSchema = new mongoose.Schema({
   dueDate: {
     type: Date, // Expected date for completing task
     required: true,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
   }
+},   {
+  timestamps: true,
 });
 
 // Middleware to update `updatedAt` automatically

@@ -8,7 +8,8 @@ import {
     listTasksByParam,
     closeTask,
     getOverdueTasks,
-    updateTaskStatus
+    updateTaskStatus,
+    assignTaskToInmates
   } from '../controllers/tasksController.js';
 
 const router = express.Router();
@@ -39,5 +40,8 @@ router.get('/overdue', getOverdueTasks);
 
 //Update Task Status
 router.patch('/:id/status', updateTaskStatus);
+
+// Assign task to inmate(s) 
+router.patch('/:id/assign', assignTaskToInmates);
 
 export default router;
