@@ -8,6 +8,7 @@ import {
     listTasksByParam,
     closeTask,
     getOverdueTasks,
+    updateTaskStatus,
     assignTaskToInmates
   } from '../controllers/tasksController.js';
 
@@ -36,6 +37,9 @@ router.patch('/:id/close', closeTask);
 
 // Get overdue tasks
 router.get('/overdue', getOverdueTasks);
+
+//Update Task Status
+router.patch('/:id/status', updateTaskStatus);
 
 // Assign task to inmate(s) 
 router.patch('/:id/assign', assignTaskToInmates);
