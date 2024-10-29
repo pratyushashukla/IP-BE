@@ -24,6 +24,7 @@ const inmateSchema = new mongoose.Schema(
     contactNumber: {
       type: String,
       maxlength: 15,
+      unique: true, // This is consider to be unique for each inmates
     },
     status: {
       type: String,
