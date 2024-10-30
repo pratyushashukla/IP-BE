@@ -28,7 +28,7 @@ const inmateSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Active", "Released"], // Active = Still in rehab, Released = Released
+      enum: ["Active", "InActive"],
       required: true,
     },
     sentenceDuration: {
