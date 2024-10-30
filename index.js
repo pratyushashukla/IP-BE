@@ -6,6 +6,7 @@ import userRoute from "./routes/userRoute.js";
 import authRoute from "./routes/authRoute.js";
 import tasksRoute from "./routes/tasksRoute.js";
 import inmateRoute from "./routes/inmateRoute.js";
+import visitorRoute from "./routes/visitorRoute.js";
 
 import User from "./models/userModel.js";
 import { connect } from "./config/dbconnection.js";
@@ -114,6 +115,7 @@ app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/users", userRoute);
 app.use("/api/v1/tasks", tasksRoute);
 app.use("/api/v1/inmates", inmateRoute);
+app.use("/api/v1/visitors", visitorRoute);
 
 //create connection
 connect();
