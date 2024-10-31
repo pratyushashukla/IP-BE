@@ -98,4 +98,52 @@ export const deleteVisitor = async (req, res) => {
   }
 };
 
+// Search Visitors by Filter Parameters
+export const searchVisitors = async (req, res) => {
+    const { name, inmateName, contactNumber } = req.query;
+  
+    const filter = {};
+  
+    if (name) {
+      filter.$or = [
+        { firstname: new RegExp(name, "i") },
+        { lastname: new RegExp(name, "i") }
+      ];
+    }
+    if (contactNumber) {
+      filter.contactNumber = new RegExp(contactNumber, "i");
+    }
+  
+    try {
+      // Fetch Inmate IDs based on inmateName if provided
+      let inmateIds = [];
+      if (inmateName) {
+        const inmates = await Inmate.find({
+          $or: [
+            { firstName: new RegExp(inmateName.trim(), "i") }, 
+            { lastName: new RegExp(inmateName.trim(), "i") }
+          ]
+        });
+        console.log("Inmates found with exact match:", inmates);
+        
+        inmateIds = inmates.map(inmate => inmate._id); // Collect IDs of matching inmates
+      }
+  
+      // Add inmateId filter if inmateName was provided
+      if (inmateIds.length > 0) {
+        filter.inmateId = { $in: inmateIds };
+      } else if (inmateName) {
+        // If inmateName was provided but no inmates found, return an empty result
+        return res.status(200).json([]);
+      }
+  
+      // Query visitors with the accumulated filter and populate inmate details
+      const visitors = await Visitor.find(filter).populate("inmateId", "firstName lastName");
+      res.status(200).json(visitors);
+    } catch (error) {
+      res.status(500).json({ message: "Server error", error });
+    }
+  };
+  
+
 
