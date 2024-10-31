@@ -79,19 +79,24 @@ export const updateInmate = async (req, res) => {
     }
   };
   
-  // Delete Inmate
+// Delete Inmate
 export const deleteInmate = async (req, res) => {
-    const { id } = req.params;
-  
-    try {
-      const inmate = await Inmate.findByIdAndDelete(id);
-      if (!inmate) {
-        return res.status(404).json({ message: 'Inmate not found' });
-      }
-  
-      res.status(200).json({ message: 'Inmate deleted successfully' });
-    } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+  const { id } = req.params;
+
+  try {
+    const inmate = await Inmate.findByIdAndDelete(id);
+    if (!inmate) {
+      return res.status(404).json({ message: 'Inmate not found' });
     }
-  };
+
+    // Cascade delete associated visitors
+    await Visitor.deleteMany({ inmateId: id });
+
+    res.status(200).json({ message: 'Inmate deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+
   

@@ -1,38 +1,39 @@
 import mongoose from "mongoose";
 
-const visitSchema = new mongoose.Schema(
+const appointmentSchema = new mongoose.Schema(
   {
     visitorId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Visitor', // Refers to Visitor model
+      ref: "Visitor", // Refers to Visitor model
       required: true,
     },
     inmateId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Inmate', // Refers to Inmate model
+      ref: "Inmate", // Refers to Inmate model
       required: true,
     },
     staffId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User', // Refers to Staff/User model
-      required: true,
-    },
-    visitDate: {
-      type: Date,
+      ref: "User", // Refers to Staff/User model
       required: true,
     },
     startTime: {
       type: Date,
       required: true,
     },
-    endTime: {
+    estimatedEndTime: {
       type: Date,
       required: true,
     },
+    actualEndTime: {
+      type: Date,
+      required: false,
+    },
     status: {
       type: String,
-      enum: ['completed', 'canceled', 'scheduled', 'ongoing'], 
+      enum: ["Completed", "Canceled", "Scheduled", "Ongoing"],
       required: true,
+      default: "Scheduled",
     },
     identityVerified: {
       type: Boolean,
@@ -44,14 +45,13 @@ const visitSchema = new mongoose.Schema(
     },
     remarks: {
       type: String,
-      maxlength: 50,
     },
   },
   {
-    timestamps: true, 
+    timestamps: true,
   }
 );
 
-const Visit = mongoose.model("Visit", visitSchema);
+const Appointment = mongoose.model("Appointment", appointmentSchema);
 
-export default Visit;
+export default Appointment;
