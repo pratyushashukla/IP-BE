@@ -9,6 +9,9 @@ router.post('/', visitorController.addVisitor);
 // List all visitors
 router.get('/', visitorController.listVisitors);
 
+// Search Visitor
+router.get('/search', visitorController.searchVisitors);
+
 // Get visitor by ID
 router.get('/:id', visitorController.getVisitorById);
 
