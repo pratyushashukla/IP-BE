@@ -117,7 +117,7 @@ app.use("/api/v1/users", userRoute);
 app.use("/api/v1/tasks", tasksRoute);
 app.use("/api/v1/inmates", inmateRoute);
 app.use("/api/v1/visitors", visitorRoute);
-app.use("/api/v1/appoitments", appointmentsRoute);
+app.use("/api/v1/appointments", appointmentsRoute);
 
 //create connection
 connect();
