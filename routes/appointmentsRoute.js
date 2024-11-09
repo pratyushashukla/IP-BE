@@ -4,6 +4,7 @@ import {
   getAllAppointments,
   updateAppointment,
   deleteAppointment,
+  searchAppointments,
 } from "../controllers/appointmentsController.js";
 
 const router = express.Router();
@@ -13,6 +14,9 @@ router.post("/", scheduleAppointment);
 
 // Get all appointments
 router.get("/", getAllAppointments);
+
+// Search Appointments
+router.get("/search", searchAppointments);
 
 // Update appointment
 router.patch("/:id", updateAppointment);
