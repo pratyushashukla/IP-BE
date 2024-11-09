@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import User from "../models/userModel.js";
 import * as auth from "../lib/auth.js";
-import sendEmailToUser  from '../utils/emailService.js';
+import { sendEmailToUser }  from '../utils/emailService.js';
 
 export const signup = async (req, res) => {
   const userObj = req.body; 

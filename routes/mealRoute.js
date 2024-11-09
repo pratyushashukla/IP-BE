@@ -6,8 +6,11 @@ const router = express.Router();
 // Create meal plan
 router.post('/', mealController.addMealPlan);
 
+// List all meal plans
+router.get('/', mealController.listMeals);
+
 // List all meal plans with pagination
-router.get('/', mealController.listMealsWithPagination);
+//router.get('/', mealController.listMealsWithPagination);
 
 // Search meal plans by filters (inmateName, date, mealType)
 router.get('/search', mealController.searchMealsWithPagination);
