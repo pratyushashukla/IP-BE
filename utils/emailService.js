@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 
 // Creating a Nodemailer transporter using SMTP
 const transporter = nodemailer.createTransport({
-  service: 'gmail',  // For Gmail.
+  service: 'gmail',  // For Gmail. We can change if we want other services
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -58,7 +58,7 @@ const sendPasswordResetCode = async (to, otp) => {
 };
 
 // Email handler based on the flag
-const sendEmailToUser = async ({ to, name = '', otp = '', type }) => {
+export const sendEmailToUser = async ({ to, name = '', otp = '', type }) => {
   try {
     if (type === 'confirmation') {
       // Send confirmation email
@@ -75,4 +75,30 @@ const sendEmailToUser = async ({ to, name = '', otp = '', type }) => {
   }
 };
 
-export default sendEmailToUser;
+//send meal plan PDF email
+export const sendMealPlanEmail = async (to, inmateName, mealPlanDetails, pdfPath) => {
+  const subject = `Meal Plan for ${inmateName}`;
+  const text = `Hello,\n\nAttached is the meal plan for ${inmateName}.\n\n${mealPlanDetails}`;
+  const attachments = [{ filename: `meal_plan_${inmateName}.pdf`, path: pdfPath }];
+
+  try {
+    return await sendEmail(to, subject, text, attachments);
+  } catch (error) {
+    console.error('Error in sending meal plan email:', error);
+    throw error;
+  }
+};
+
+//notify user of password reset
+export const sendPasswordResetNotification = async (to, newPassword) => {
+  const subject = 'Password Reset Notification';
+  const text = `Hello,\n\nYour password has been successfully reset. Your new password is: ${newPassword}\n\nBest regards,\nThe Inmate+ Team`;
+
+  try {
+    return await sendEmail(to, subject, text);
+  } catch (error) {
+    console.error('Error in sending password reset notification:', error);
+    throw error;
+  }
+};
+
