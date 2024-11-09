@@ -46,6 +46,9 @@ const appointmentSchema = new mongoose.Schema(
     remarks: {
       type: String,
     },
+    cancellationReason: {
+      type: String,
+    },
   },
   {
     timestamps: true,
