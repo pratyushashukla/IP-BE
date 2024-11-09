@@ -17,10 +17,12 @@ const mealSchema = new mongoose.Schema(
       required: true,
       enum: ["Weekly", "Monthly"],
     },
-    allergyId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Allergy",
-    },
+    allergyId: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Allergy",
+      }
+    ],
     dietaryPreferences: {
       type: String, // Text box input for user notes
     },

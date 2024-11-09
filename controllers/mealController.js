@@ -24,8 +24,8 @@ export const addMealPlan = async (req, res) => {
   const { inmateId, mealType, mealPlan, allergyId, dietaryPreferences } = req.body;
 
   // Check if required fields are present
-  if (!mealType || !mealPlan) {
-    return res.status(400).json({ message: "Meal Type and Meal Plan are required" });
+  if (!inmateId || !mealType || !mealPlan) {
+    return res.status(400).json({ message: "InmateId, Meal Type and Meal Plan are required" });
   }
 
   try {
@@ -43,6 +43,7 @@ export const addMealPlan = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
 
 // Get All Meal Plans
 export const listMeals = async (req, res) => {
@@ -106,7 +107,7 @@ export const updateMealPlan = async (req, res) => {
     if (mealType) updateData.mealType = mealType;
     if (mealPlan) updateData.mealPlan = mealPlan;
     if (dietaryPreferences) updateData.dietaryPreferences = dietaryPreferences;
-    if (allergyId) updateData.allergyId = allergyId;
+    if (Array.isArray(allergyId)) updateData.allergyId = allergyId; // Ensure allergyId is an array
 
     const updatedMeal = await Meal.findByIdAndUpdate(req.params.id, updateData, { new: true });
 
@@ -119,6 +120,7 @@ export const updateMealPlan = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
 
 // Delete Meal Plan
 export const deleteMealPlan = async (req, res) => {
