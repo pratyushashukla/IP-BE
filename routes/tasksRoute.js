@@ -11,20 +11,22 @@ import {
     updateTaskStatus,
     assignTaskToInmates
   } from '../controllers/tasksController.js';
+import { clearRedixCache, saveDataToRedis, sendDataFromRedis } from '../lib/redis.js';
 
 const router = express.Router();
+const cacheKey = "/tasks"
 
 // Create task
-router.post('/', createTask);
+router.post('/', clearRedixCache(cacheKey), createTask);
 
 //Update Task
-router.patch('/:id', updateTask);
+router.patch('/:id', clearRedixCache(cacheKey), updateTask);
 
 //Delete Task
-router.delete('/:id', deleteTask);
+router.delete('/:id', clearRedixCache(cacheKey), deleteTask);
 
 // List all tasks
-router.get('/', listTasks);
+router.get('/', saveDataToRedis(), sendDataFromRedis, listTasks);
 
 // Get task by ID
 router.get('/:id', getTaskById);
@@ -33,15 +35,15 @@ router.get('/:id', getTaskById);
 router.get('/filter', listTasksByParam);
 
 // Close a task
-router.patch('/:id/close', closeTask);
+router.patch('/:id/close', clearRedixCache(cacheKey), closeTask);
 
 // Get overdue tasks
 router.get('/overdue', getOverdueTasks);
 
 //Update Task Status
-router.patch('/:id/status', updateTaskStatus);
+router.patch('/:id/status', clearRedixCache(cacheKey), updateTaskStatus);
 
 // Assign task to inmate(s) 
-router.patch('/:id/assign', assignTaskToInmates);
+router.patch('/:id/assign', clearRedixCache(cacheKey), assignTaskToInmates);
 
 export default router;

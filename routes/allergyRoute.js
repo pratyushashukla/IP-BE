@@ -1,21 +1,23 @@
 import express from 'express';
 import * as allergyController from '../controllers/allergyController.js';
+import { clearRedixCache, saveDataToRedis, sendDataFromRedis } from '../lib/redis.js';
 
 const router = express.Router();
+const cacheKey = "/allergies"
 
 // Create new allergy
-router.post('/', allergyController.createAllergy);
+router.post('/', clearRedixCache(cacheKey), allergyController.createAllergy);
 
 // List all allergies
-router.get('/', allergyController.getAllAllergiesWithPagination);
+router.get('/', saveDataToRedis(), sendDataFromRedis, allergyController.getAllAllergiesWithPagination);
 
 // Get allergy by ID
 router.get('/:id', allergyController.getAllergyById);
 
 // Update allergy by ID
-router.patch('/:id', allergyController.updateAllergy);
+router.patch('/:id', clearRedixCache(cacheKey), allergyController.updateAllergy);
 
 // Delete allergy by ID
-router.delete('/:id', allergyController.deleteAllergy);
+router.delete('/:id', clearRedixCache(cacheKey), allergyController.deleteAllergy);
 
 export default router;
