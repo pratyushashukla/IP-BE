@@ -15,6 +15,7 @@ import User from "./models/userModel.js";
 import { connect } from "./config/dbconnection.js";
 
 import dotenv from "dotenv";
+import { redisConnect } from "./lib/redis.js";
 
 dotenv.config(); // Load environment variables from .env file
 
@@ -125,6 +126,9 @@ app.use('/api/v1/allergies', allergyRoute);
 
 //create connection
 connect();
+
+//redis connection
+redisConnect();
 
 // Start server
 const PORT = 3000;

@@ -1,13 +1,15 @@
 import express from 'express';
 import * as visitorController from '../controllers/visitorController.js';
+import { clearRedixCache, saveDataToRedis, sendDataFromRedis } from '../lib/redis.js';
 
 const router = express.Router();
+const cacheKey = "/visitors"
 
 // Create visitor
-router.post('/', visitorController.addVisitor);
+router.post('/', clearRedixCache(cacheKey), visitorController.addVisitor);
 
 // List all visitors
-router.get('/', visitorController.listVisitors);
+router.get('/', saveDataToRedis(), sendDataFromRedis, visitorController.listVisitors);
 
 // Search Visitor
 router.get('/search', visitorController.searchVisitors);
@@ -16,9 +18,9 @@ router.get('/search', visitorController.searchVisitors);
 router.get('/:id', visitorController.getVisitorById);
 
 //Update visitor
-router.patch('/:id', visitorController.updateVisitor);
+router.patch('/:id', clearRedixCache(cacheKey), visitorController.updateVisitor);
 
 //Delete visitor
-router.delete('/:id', visitorController.deleteVisitor);
+router.delete('/:id', clearRedixCache(cacheKey), visitorController.deleteVisitor);
 
 export default router;
