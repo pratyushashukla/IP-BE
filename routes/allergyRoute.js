@@ -9,7 +9,7 @@ const cacheKey = "/allergies"
 router.post('/', clearRedixCache(cacheKey), allergyController.createAllergy);
 
 // List all allergies
-router.get('/', saveDataToRedis(), sendDataFromRedis, allergyController.getAllAllergiesWithPagination);
+router.get('/', saveDataToRedis(), sendDataFromRedis, allergyController.getAllAllergies);
 
 // Get allergy by ID
 router.get('/:id', allergyController.getAllergyById);
