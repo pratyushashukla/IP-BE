@@ -5,7 +5,7 @@ export const createAllergy = async (req, res) => {
   let { allergyName, description } = req.body;
 
   // Trim whitespace from the allergy name
-  allergyName = allergyName.trim();
+  allergyName = allergyName.trim().toLowerCase();
 
   if (!allergyName) {
     return res.status(400).json({ message: "Allergy name is required" });
@@ -93,7 +93,7 @@ export const updateAllergy = async (req, res) => {
 
   // Trim whitespace from allergy name if provided
   if (allergyName) {
-    allergyName = allergyName.trim();
+    allergyName = allergyName.trim().toLowerCase();
   }
 
   try {

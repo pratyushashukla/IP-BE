@@ -4,29 +4,44 @@ import * as auth from "../lib/auth.js";
 import { sendEmailToUser }  from '../utils/emailService.js';
 
 export const signup = async (req, res) => {
-  const userObj = req.body; 
-  const salt = await bcrypt.genSalt(10);
-  const hashPass = await bcrypt.hash(userObj.password, salt);
-  userObj.password = hashPass;
+  const userObj = req.body;
 
-  const post = new User(userObj);
+  // Validate phone number
+  const phoneRegex = /^\d{10}$/;
+  if (!phoneRegex.test(userObj.phone)) {
+    return res.status(400).json({ message: "Phone number must be exactly 10 digits." });
+  }
+
+  // Validate password
+  const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;"'<>?,./\\|`~\-]).{6,}$/;
+  if (!passwordRegex.test(userObj.password)) {
+    return res.status(400).json({ message: "Password must contain at least one uppercase letter, one special symbol, and one number." });
+  }
 
   try {
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    const hashPass = await bcrypt.hash(userObj.password, salt);
+    userObj.password = hashPass;
+
+    // Create and save the user
+    const post = new User(userObj);
     await post.save();
-     //Sendign Email After User is Registered Successfully
-     try {
+
+    // Send confirmation email
+    try {
       await sendEmailToUser({
-        to: userObj.email,          
-        name: userObj.firstname,    
-        type: 'confirmation'        
+        to: userObj.email,
+        name: userObj.firstname,
+        type: 'confirmation'
       });
-      res.status(200).json({ message: "Signup successful. Confirmation email sent. Login to continue" });
+      res.status(200).json({ message: "Signup successful. Confirmation email sent. Login to continue." });
     } catch (emailError) {
       console.error(`Failed to send email: ${emailError.message}`);
       res.status(200).json({ message: "Signup successful, but email could not be sent. Please contact support." });
     }
   } catch (err) {
-    res.status(400).json({ message: `Error while signing up due to ${err}` });
+    res.status(400).json({ message: `Error while signing up due to ${err.message}` });
   }
 };
 
