@@ -259,8 +259,12 @@ export const downloadMeal = async (req, res) => {
 export const emailMealPlan = async (req, res) => {
   const { email } = req.body;
   let pdfPath;
+  
   try {
-    const meal = await Meal.findById(req.params.id).populate("inmateId", "firstName lastName");
+    const meal = await Meal.findById(req.params.id)
+      .populate("inmateId", "firstName lastName")
+      .populate("allergyId", "allergyName description"); 
+
     if (!meal) {
       return res.status(404).json({ message: "Meal plan not found" });
     }
@@ -270,17 +274,21 @@ export const emailMealPlan = async (req, res) => {
     pdfPath = path.join(__dirname, `../downloads/meal_${meal._id}.pdf`);
     await generateMealPlanPDF(meal, pdfPath);
 
+    // Format allergy information
+    const allergies = meal.allergyId
+      .map(allergy => `${allergy.allergyName}${allergy.description ? `: ${allergy.description}` : ''}`)
+      .join(", ") || 'None';
+
     await sendMealPlanEmail(
       email,
       `${meal.inmateId.firstName} ${meal.inmateId.lastName}`,
-      `Meal Type: ${meal.mealType}\nMeal Plan: ${meal.mealPlan}\nDietary Preferences: ${meal.dietaryPreferences || 'None'}`,
+      `Meal Type: ${meal.mealType}\nMeal Plan: ${meal.mealPlan}\nDietary Preferences: ${meal.dietaryPreferences || 'None'}\nAllergies: ${allergies}`,
       pdfPath
     );
 
-    deleteFile(pdfPath);
-    res.status(200).json({ message: "Email sent successfully" });
+    res.status(200).json({ message: "Meal plan emailed successfully" });
   } catch (error) {
-    console.error("Error in emailMealPlan:", error);
     res.status(500).json({ message: "Server error", error });
   }
 };
+
