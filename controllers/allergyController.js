@@ -2,13 +2,24 @@ import Allergy from "../models/allergyModel.js";
 
 // Create Allergy
 export const createAllergy = async (req, res) => {
-  const { allergyName, description } = req.body;
+  let { allergyName, description } = req.body;
+
+  // Trim whitespace from the allergy name
+  allergyName = allergyName.trim();
 
   if (!allergyName) {
     return res.status(400).json({ message: "Allergy name is required" });
   }
 
   try {
+    // Check if an allergy with the same name already exists
+    const existingAllergy = await Allergy.findOne({ allergyName });
+
+    if (existingAllergy) {
+      return res.status(409).json({ message: "Allergy with this name already exists" });
+    }
+
+    // If no existing allergy, create a new one
     const allergy = new Allergy({
       allergyName,
       description,
@@ -19,6 +30,7 @@ export const createAllergy = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
 
 // Get All Allergies
 export const getAllAllergies = async (req, res) => {
@@ -77,9 +89,24 @@ export const getAllergyById = async (req, res) => {
 
 // Update Allergy
 export const updateAllergy = async (req, res) => {
-  const { allergyName, description } = req.body;
+  let { allergyName, description } = req.body;
+
+  // Trim whitespace from allergy name if provided
+  if (allergyName) {
+    allergyName = allergyName.trim();
+  }
 
   try {
+    // Check if an allergy with the same name already exists, excluding the current allergy
+    if (allergyName) {
+      const existingAllergy = await Allergy.findOne({ allergyName });
+
+      if (existingAllergy && existingAllergy._id.toString() !== req.params.id) {
+        return res.status(409).json({ message: "Allergy with this name already exists" });
+      }
+    }
+
+    // update if no duplicate exists
     const updatedAllergy = await Allergy.findByIdAndUpdate(
       req.params.id,
       { allergyName, description },
@@ -95,6 +122,7 @@ export const updateAllergy = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
 
 // Delete Allergy
 export const deleteAllergy = async (req, res) => {
