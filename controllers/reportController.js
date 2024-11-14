@@ -30,7 +30,7 @@ export const generateReportFile = async (inmateId, type, userId) => {
 
   let data = { inmate };
 
-  switch (type) {
+  switch (type.toLowerCase()) {
     case 'complete':       
       const tasks = await TaskAssignment.find({ inmateId })
         .populate({
@@ -80,6 +80,9 @@ export const generateReport = async (req, res) => {
   
     try {
       const { reportFilePath } = await generateReportFile(inmateId, type, userId);
+      if (!reportFilePath) {
+        throw new Error("Failed to generate the report file.");
+      }
       res.download(reportFilePath, (err) => {
         if (err) {
           console.error("Download error:", err);
@@ -93,6 +96,51 @@ export const generateReport = async (req, res) => {
     }
   };
   
+  // Get Report By Inmatate so that is used in preview
+  export const getReportForInmate = async (req, res) => {
+    const { inmateId, reportType } = req.params;
+  
+    try {
+      // Fetch inmate data
+      const inmate = await Inmate.findById(inmateId);
+      if (!inmate) {
+        return res.status(404).json({ message: 'Inmate not found' });
+      }
+  
+      // Base data structure for the report
+      let reportData = { inmate };
+  
+      // Conditionally add data based on the report type
+      if (reportType === 'complete' || reportType === 'tasks') {
+        const tasks = await TaskAssignment.find({ inmateId })
+          .populate({
+            path: 'taskId',
+            select: 'title description assignedBy',
+            populate: { path: 'assignedBy', select: 'firstname lastname' },
+          });
+        reportData.tasks = tasks;
+      }
+  
+      if (reportType === 'complete' || reportType === 'meal') {
+        const meals = await Meal.find({ inmateId }).populate('allergyId', 'allergyName');
+        reportData.meals = meals;
+      }
+  
+      if (reportType === 'complete' || reportType === 'visitor') {
+        const visitors = await Visitor.find({ inmateId });
+        const appointments = await Appointment.find({ inmateId }).populate('visitorId', 'firstname lastname');
+        reportData.visitors = visitors;
+        reportData.appointments = appointments;
+      }
+  
+      // Respond with the assembled report data
+      res.status(200).json(reportData);
+    } catch (error) {
+      console.error(`Error fetching report data: ${error.message}`);
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  };
+
 // List generated reports for a specific inmate
 export const listGeneratedReportsForInmate = async (req, res) => {
   const { inmateId } = req.params;
