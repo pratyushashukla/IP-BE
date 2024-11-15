@@ -10,6 +10,7 @@ import visitorRoute from "./routes/visitorRoute.js";
 import appointmentsRoute from "./routes/appointmentsRoute.js";
 import mealRoute from "./routes/mealRoute.js";
 import allergyRoute from "./routes/allergyRoute.js";
+import reportRoute from "./routes/reportRoute.js";
 
 import User from "./models/userModel.js";
 import { connect } from "./config/dbconnection.js";
@@ -97,6 +98,9 @@ const handleAuthToken = async (req, res, next) => {
     // refresh the token to extend the session
     const newToken = auth.createToken(userData._id, userData.email);
     res.setHeader("authtoken", `${newToken.token}`);
+    // Set user data in req.user for access in subsequent middleware or routes
+    req.user = { userId: userData._id, email: userData.email };
+  
     global.user = userData;
     next();
   } catch (error) {
@@ -126,6 +130,7 @@ app.use("/api/v1/visitors", visitorRoute);
 app.use("/api/v1/appointments", appointmentsRoute);
 app.use("/api/v1/meals", mealRoute);
 app.use("/api/v1/allergies", allergyRoute);
+app.use("/api/v1/reports", reportRoute);
 
 //create connection
 connect();
