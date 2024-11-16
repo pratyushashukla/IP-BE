@@ -1,4 +1,8 @@
+import mongoose from "mongoose";
+import Appointment from "../models/appointmentModel.js";
 import Inmate from "../models/inmateModel.js";
+import Meal from "../models/mealModel.js";
+import TaskAssignment from "../models/taskAssignmentModel.js";
 import Visitor from "../models/visitorModel.js";
 
 // Declare a default filter variable
@@ -6,11 +10,26 @@ const defaultFilter = { isActive: true };
 
 // Create an Inmate
 export const createInmate = async (req, res) => {
-  const { firstName, lastName, dateOfBirth, gender, contactNumber, status, sentenceDuration } = req.body;
+  const {
+    firstName,
+    lastName,
+    dateOfBirth,
+    gender,
+    contactNumber,
+    status,
+    sentenceDuration,
+  } = req.body;
 
   // Validate required fields
-  if (!firstName || !lastName || !dateOfBirth || !gender || !status || !sentenceDuration) {
-    return res.status(400).json({ message: 'Missing required fields' });
+  if (
+    !firstName ||
+    !lastName ||
+    !dateOfBirth ||
+    !gender ||
+    !status ||
+    !sentenceDuration
+  ) {
+    return res.status(400).json({ message: "Missing required fields" });
   }
 
   try {
@@ -21,13 +40,15 @@ export const createInmate = async (req, res) => {
       gender,
       contactNumber,
       status,
-      sentenceDuration
+      sentenceDuration,
     });
 
     await newInmate.save();
-    res.status(201).json({ message: 'Inmate created successfully', inmate: newInmate });
+    res
+      .status(201)
+      .json({ message: "Inmate created successfully", inmate: newInmate });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    res.status(500).json({ message: "Server error", error });
   }
 };
 
@@ -43,21 +64,41 @@ export const getAllInmates = async (req, res) => {
   
   // Get Inmate By ID
 export const getInmateById = async (req, res) => {
-    const { id } = req.params;
-    const filter = {...defaultFilter, _id: id}
+  const { id } = req.params;
+  const filter = {...defaultFilter, _id: id}
   
-    try {
-      const inmate = await Inmate.findById(filter);
-      if (!inmate) {
-        return res.status(404).json({ message: 'Inmate not found' });
-      }
-      res.status(200).json(inmate);
-    } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
-    }
+  try {
+  // Fetch all data concurrently using Promise.all
+  const [inmate, mealPlan, tasksAssigned, visitors, appointments] = await Promise.all([
+    Inmate.findById(filter).lean(),
+    Meal.findOne({ inmateId: id }).populate("allergyId").lean(),
+    TaskAssignment.find({ inmateId: id }).populate("taskId").lean(),
+    Visitor.find({ inmateId: id }).lean(),
+    Appointment.find({ inmateId: id }).populate("visitorId").lean(),
+  ]);
+
+  // Check if inmate exists
+  if (!inmate) {
+    return res.status(404).json({ message: "Inmate not found" });
+  }
+
+  // Combine all data into a single object
+  const result = {
+    ...inmate,
+    mealPlan,
+    tasksAssigned,
+    visitors,
+    appointments,
   };
-  
-  // Update Inmate
+
+  // Send combined result object
+  res.status(200).json({ result });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+// Update Inmate
 export const updateInmate = async (req, res) => {
     const { id } = req.params;
     const { firstName, lastName, dateOfBirth, gender, contactNumber, status, sentenceDuration } = req.body;
@@ -92,7 +133,7 @@ export const deleteInmate = async (req, res) => {
     // Update isActive to false for soft delete
     const inmate = await Inmate.findByIdAndUpdate(id, { isActive: false }, { new: true });
     if (!inmate) {
-      return res.status(404).json({ message: 'Inmate not found' });
+      return res.status(404).json({ message: "Inmate not found" });
     }
 
     // Optionally, cascade delete associated visitors
@@ -100,10 +141,9 @@ export const deleteInmate = async (req, res) => {
 
     res.status(200).json({ message: 'Inmate marked as inactive successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    res.status(500).json({ message: "Server error", error });
   }
 };
-
 
 
   

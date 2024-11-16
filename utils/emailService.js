@@ -10,12 +10,13 @@ const transporter = nodemailer.createTransport({
 });
 
 // Generic function to send emails
-const sendEmail = async (to, subject, text) => {
+const sendEmail = async (to, subject, text, attachments = []) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: to,
     subject: subject,
     text: text,
+    attachments: attachments,
   };
 
   try {
@@ -98,6 +99,20 @@ export const sendPasswordResetNotification = async (to, newPassword) => {
     return await sendEmail(to, subject, text);
   } catch (error) {
     console.error('Error in sending password reset notification:', error);
+    throw error;
+  }
+};
+
+// Function to send report PDF as an email attachment
+export const sendReportEmail = async (to, inmateName, reportType, pdfPath) => {
+  const subject = `Inmate Report for ${inmateName}`;
+  const text = `Hello,\n\nAttached is the ${reportType} report for ${inmateName}.\n\nBest regards,\nThe Inmate+ Team`;
+  const attachments = [{ filename: `report_${inmateName}.pdf`, path: pdfPath }];
+
+  try {
+    return await sendEmail(to, subject, text, attachments);
+  } catch (error) {
+    console.error('Error in sending report email:', error);
     throw error;
   }
 };
