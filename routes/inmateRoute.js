@@ -25,7 +25,7 @@ router.get('/:id', getInmateById);
 // Update inmate (using PATCH)
 router.patch('/:id', clearRedixCache(cacheKey), updateInmate);
 
-// Delete inmate
+// Soft delete inmate (mark as inactive)
 router.delete('/:id', clearRedixCache(cacheKey), deleteInmate);
 
 export default router;

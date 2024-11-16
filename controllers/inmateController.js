@@ -1,4 +1,8 @@
 import Inmate from "../models/inmateModel.js";
+import Visitor from "../models/visitorModel.js";
+
+// Declare a default filter variable
+const defaultFilter = { isActive: true };
 
 // Create an Inmate
 export const createInmate = async (req, res) => {
@@ -28,9 +32,9 @@ export const createInmate = async (req, res) => {
 };
 
 // Get All Inmates
-export const getAllInmates = async (req, res) => {
+export const getAllInmates = async (req, res) => {    
     try {
-      const inmates = await Inmate.find();
+      const inmates = await Inmate.find(defaultFilter);      
       res.status(200).json(inmates);
     } catch (error) {
       res.status(500).json({ message: 'Server error', error });
@@ -40,9 +44,10 @@ export const getAllInmates = async (req, res) => {
   // Get Inmate By ID
 export const getInmateById = async (req, res) => {
     const { id } = req.params;
+    const filter = {...defaultFilter, _id: id}
   
     try {
-      const inmate = await Inmate.findById(id);
+      const inmate = await Inmate.findById(filter);
       if (!inmate) {
         return res.status(404).json({ message: 'Inmate not found' });
       }
@@ -79,24 +84,26 @@ export const updateInmate = async (req, res) => {
     }
   };
   
-// Delete Inmate
+// Delete Inmate (soft delete by setting isActive to false)
 export const deleteInmate = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const inmate = await Inmate.findByIdAndDelete(id);
+    // Update isActive to false for soft delete
+    const inmate = await Inmate.findByIdAndUpdate(id, { isActive: false }, { new: true });
     if (!inmate) {
       return res.status(404).json({ message: 'Inmate not found' });
     }
 
-    // Cascade delete associated visitors
+    // Optionally, cascade delete associated visitors
     await Visitor.deleteMany({ inmateId: id });
 
-    res.status(200).json({ message: 'Inmate deleted successfully' });
+    res.status(200).json({ message: 'Inmate marked as inactive successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }
 };
+
 
 
   
