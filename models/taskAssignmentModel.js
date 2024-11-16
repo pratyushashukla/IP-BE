@@ -20,6 +20,10 @@ const taskAssignmentSchema = new mongoose.Schema(
       type: String, // Notes about the inmate's progress on the task
       default: "Task Assigned",
     },
+    isActive: {
+      type: Boolean,
+      default: true, // Defaults to true, will be set to false on delete
+    },
   },
   {
     timestamps: true,

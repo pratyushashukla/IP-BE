@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import Meal from '../models/mealModel.js';
 import Inmate from '../models/inmateModel.js';
 import fs from 'fs';
@@ -6,6 +5,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { sendMealPlanEmail } from '../utils/emailService.js';
 import { generateMealPlanPDF, deleteFile } from '../utils/pdfGenerator.js';
+
+// Declare a default filter variable
+const defaultFilter = { isActive: true };
 
 // Set up __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -52,30 +54,32 @@ export const addMealPlan = async (req, res) => {
   }
 };
 
-
 // Get All Meal Plans
 export const listMeals = async (req, res) => {
   try {
-    const meals = await Meal.find().populate("inmateId", "firstName lastName");
+    const meals = await Meal.find(defaultFilter).populate(
+      "inmateId",
+      "firstName lastName"
+    );
     res.status(200).json(meals);
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
 };
 
-// List Meal With Pagination
+// List Meal Plans with Pagination
 export const listMealsWithPagination = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const offset = (page - 1) * limit;
 
   try {
-    const meals = await Meal.find()
+    const meals = await Meal.find(defaultFilter)
       .skip(offset)
       .limit(limit)
       .populate("inmateId", "firstName lastName");
 
-    const total = await Meal.countDocuments();
+    const total = await Meal.countDocuments(defaultFilter);
 
     const response = {
       total,
@@ -90,10 +94,98 @@ export const listMealsWithPagination = async (req, res) => {
   }
 };
 
+// Search Meal Plans
+export const searchMeals = async (req, res) => {
+  const { inmateName, mealType, mealPlan } = req.query;
+  const filter = { ...defaultFilter }; // Include default filter
+
+  if (mealType) filter.mealType = mealType;
+  if (mealPlan) filter.mealPlan = mealPlan;
+
+  try {
+    let inmateIds = [];
+    if (inmateName) {
+      const inmates = await Inmate.find({
+        $or: [
+          { firstName: new RegExp(inmateName.trim(), "i") },
+          { lastName: new RegExp(inmateName.trim(), "i") },
+        ],
+      });
+      inmateIds = inmates.map((inmate) => inmate._id);
+    }
+
+    if (inmateIds.length > 0) {
+      filter.inmateId = { $in: inmateIds };
+    } else if (inmateName) {
+      return res.status(200).json([]);
+    }
+
+    const meals = await Meal.find(filter).populate(
+      "inmateId",
+      "firstName lastName"
+    );
+    res.status(200).json(meals);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+// Search with Pagination
+export const searchMealsWithPagination = async (req, res) => {
+  const { inmateName, mealType, mealPlan, page = 1, limit = 10 } = req.query;
+  const offset = (parseInt(page) - 1) * parseInt(limit);
+  const filter = { ...defaultFilter }; // Include default filter
+
+  if (mealType) filter.mealType = mealType;
+  if (mealPlan) filter.mealPlan = mealPlan;
+
+  try {
+    let inmateIds = [];
+    if (inmateName) {
+      const inmates = await Inmate.find({
+        $or: [
+          { firstName: new RegExp(inmateName.trim(), "i") },
+          { lastName: new RegExp(inmateName.trim(), "i") },
+        ],
+      });
+      inmateIds = inmates.map((inmate) => inmate._id);
+    }
+
+    if (inmateIds.length > 0) {
+      filter.inmateId = { $in: inmateIds };
+    } else if (inmateName) {
+      return res.status(200).json([]);
+    }
+
+    const meals = await Meal.find(filter)
+      .skip(offset)
+      .limit(parseInt(limit))
+      .populate("inmateId", "firstName lastName");
+
+    const total = await Meal.countDocuments(filter);
+
+    const response = {
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      data: meals,
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+
 // Get Meal Plan by ID
 export const getMealById = async (req, res) => {
   try {
-    const meal = await Meal.findById(req.params.id).populate("inmateId", "firstName lastName");
+    const filter = { ...defaultFilter, _id: req.params.id }; // Include default filter with ID
+    const meal = await Meal.findOne(filter).populate(
+      "inmateId",
+      "firstName lastName"
+    );
 
     if (!meal) {
       return res.status(404).json({ message: "Meal plan not found" });
@@ -133,92 +225,12 @@ export const updateMealPlan = async (req, res) => {
 // Delete Meal Plan
 export const deleteMealPlan = async (req, res) => {
   try {
-    const meal = await Meal.findByIdAndDelete(req.params.id);
+    const meal = await Meal.findByIdAndUpdate(id, { isActive: false }, { new: true });
     if (!meal) {
       return res.status(404).json({ message: "Meal plan not found" });
     }
 
     res.status(200).json({ message: "Meal plan deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error });
-  }
-};
-
-// Search Meal Plans
-export const searchMeals = async (req, res) => {
-  const { inmateName, mealType, mealPlan } = req.query;
-  const filter = {};
-
-  if (mealType) filter.mealType = mealType;
-  if (mealPlan) filter.mealPlan = mealPlan;
-
-  try {
-    let inmateIds = [];
-    if (inmateName) {
-      const inmates = await Inmate.find({
-        $or: [
-          { firstName: new RegExp(inmateName.trim(), "i") },
-          { lastName: new RegExp(inmateName.trim(), "i") },
-        ],
-      });
-      inmateIds = inmates.map(inmate => inmate._id);
-    }
-
-    if (inmateIds.length > 0) {
-      filter.inmateId = { $in: inmateIds };
-    } else if (inmateName) {
-      return res.status(200).json([]);
-    }
-
-    const meals = await Meal.find(filter).populate("inmateId", "firstName lastName");
-    res.status(200).json(meals);
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error });
-  }
-};
-
-// Search with Pagination
-export const searchMealsWithPagination = async (req, res) => {
-  const { inmateName, mealType, mealPlan, page = 1, limit = 10 } = req.query;
-  const filter = {};
-  const offset = (parseInt(page) - 1) * parseInt(limit);
-
-  if (mealType) filter.mealType = mealType;
-  if (mealPlan) filter.mealPlan = mealPlan;
-
-  try {
-    let inmateIds = [];
-    if (inmateName) {
-      const inmates = await Inmate.find({
-        $or: [
-          { firstName: new RegExp(inmateName.trim(), "i") },
-          { lastName: new RegExp(inmateName.trim(), "i") },
-        ],
-      });
-      inmateIds = inmates.map(inmate => inmate._id);
-    }
-
-    if (inmateIds.length > 0) {
-      filter.inmateId = { $in: inmateIds };
-    } else if (inmateName) {
-      return res.status(200).json([]);
-    }
-
-    const meals = await Meal.find(filter)
-      .skip(offset)
-      .limit(parseInt(limit))
-      .populate("inmateId", "firstName lastName");
-
-    const total = await Meal.countDocuments(filter);
-
-    const response = {
-      total,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      data: meals,
-    };
-
-    res.status(200).json(response);
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }

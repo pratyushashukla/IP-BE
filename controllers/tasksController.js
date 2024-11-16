@@ -5,6 +5,9 @@ import TaskAssignment from "../models/taskAssignmentModel.js";
 import Inmate from "../models/inmateModel.js";
 import mongoose from "mongoose";
 
+// Declare a default filter variable
+const defaultFilter = { isActive: true };
+
 // Create Task
 export const createTask = async (req, res) => {
   const { title, description, startDate, dueDate, assignedTo, assignedBy } =
@@ -13,17 +16,15 @@ export const createTask = async (req, res) => {
   const assignedToObjectId = assignedTo
     ? new mongoose.Types.ObjectId(assignedTo)
     : null; // Convert to ObjectId
-  const assignedByObjectId = assignedTo
+  const assignedByObjectId = assignedBy
     ? new mongoose.Types.ObjectId(assignedBy)
     : null; // Convert to ObjectId
 
   // Validation
   if (!title || !startDate || !dueDate || !assignedTo) {
-    return res
-      .status(400)
-      .json({
-        message: "Title, Start Date, Due Date, and Assigned To are required",
-      });
+    return res.status(400).json({
+      message: "Title, Start Date, Due Date, and Assigned To are required",
+    });
   }
   if (new Date(dueDate) < new Date(startDate)) {
     return res
@@ -69,13 +70,14 @@ export const createTask = async (req, res) => {
 // List all tasks with assigned inmates
 export const listTasks = async (req, res) => {
   try {
-    const tasks = await Tasks.find();
+    const tasks = await Tasks.find(defaultFilter);
 
     // Fetch assignments and populate inmate names for each task
     const tasksWithAssignments = await Promise.all(
       tasks.map(async (task) => {
         const assignments = await TaskAssignment.find({
           taskId: task._id,
+          ...defaultFilter,
         }).populate("inmateId", "firstName lastName");
         return { ...task.toObject(), assignments };
       })
@@ -87,90 +89,21 @@ export const listTasks = async (req, res) => {
   }
 };
 
-// Update Task API
-export const updateTask = async (req, res) => {
-  const { _id, title, description, startDate, dueDate, assignedBy, assignments, status } = req.body;
-
-  // Validation
-  if (!title || !startDate || !dueDate || !assignments) {
-    return res.status(400).json({
-      message: "Title, Start Date, Due Date, and Assignments are required",
-    });
-  }
-  if (new Date(dueDate) < new Date(startDate)) {
-    return res.status(400).json({ message: "Due Date cannot be before Start Date" });
-  }
-
-  try {
-    // Check if task exists
-    const existingTask = await Tasks.findById(_id);
-    if (!existingTask) {
-      return res.status(404).json({ message: "Task not found" });
-    }
-
-    // Update task fields
-    existingTask.title = title;
-    existingTask.description = description;
-    existingTask.status = status;
-    existingTask.startDate = startDate;
-    existingTask.dueDate = dueDate;
-    existingTask.assignedBy = assignedBy ? new mongoose.Types.ObjectId(assignedBy) : null;
-    existingTask.updatedAt = Date.now();
-
-    // Save the updated task
-    await existingTask.save();
-
-    // Update task assignments
-    for (let assignment of assignments) {
-      const { _id: assignmentId, inmateId, completionStatus, progressNotes } = assignment;
-
-      // Convert inmateId to ObjectId
-      const inmateObjectId = inmateId ? new mongoose.Types.ObjectId(inmateId._id) : null;
-
-      // Check if the assignment already exists
-      let existingAssignment = await TaskAssignment.findById(assignmentId);
-
-      if (existingAssignment) {
-        // Update the existing assignment
-        existingAssignment.inmateId = inmateObjectId;
-        existingAssignment.completionStatus = completionStatus;
-        existingAssignment.progressNotes = progressNotes;
-        existingAssignment.updatedAt = Date.now();
-        await existingAssignment.save();
-      } else {
-        // Create a new assignment if it doesn't exist
-        const newAssignment = new TaskAssignment({
-          taskId: existingTask._id,
-          inmateId: inmateObjectId,
-          completionStatus,
-          progressNotes,
-        });
-        await newAssignment.save();
-      }
-    }
-
-    res.status(200).json({ message: "Task and assignments updated successfully", task: existingTask });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error });
-  }
-};
-
-
 // Retrieve Individual Task with assigned inmates
 export const getTaskById = async (req, res) => {
-  const { id } = req.params;
+  const filter = { ...defaultFilter, _id: req.params.id }; // Include default filter with ID
 
   try {
-    const task = await Tasks.findById(id);
+    const task = await Tasks.findOne(filter);
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
 
     // Fetch the task's assignments
-    const assignments = await TaskAssignment.find({ taskId: id }).populate(
-      "inmateId",
-      "firstName lastName"
-    );
+    const assignments = await TaskAssignment.find({
+      taskId: req.params.id,
+      ...defaultFilter,
+    }).populate("inmateId", "firstName lastName");
 
     // Combine task and assignments into a single response
     const taskWithAssignments = {
@@ -188,7 +121,7 @@ export const getTaskById = async (req, res) => {
 export const listTasksByParam = async (req, res) => {
   const { title, assignedTo, status, dueDate, startDate } = req.query;
 
-  const filter = {};
+  const filter = { ...defaultFilter }; // Include default filter
 
   if (title) {
     filter.title = new RegExp(title, "i"); // Case-insensitive search for task title
@@ -212,6 +145,7 @@ export const listTasksByParam = async (req, res) => {
     if (assignedTo) {
       const taskAssignments = await TaskAssignment.find({
         inmateId: assignedTo,
+        ...defaultFilter,
       });
       const taskIds = taskAssignments.map((assignment) =>
         assignment.taskId.toString()
@@ -227,13 +161,125 @@ export const listTasksByParam = async (req, res) => {
   }
 };
 
+// Get Overdue Tasks
+export const getOverdueTasks = async (req, res) => {
+  try {
+    const overdueTasks = await Tasks.find({
+      ...defaultFilter, // Include default filter
+      dueDate: { $lt: new Date() }, // Due date is in the past
+      status: { $ne: "Completed" }, // Task is not completed
+    });
+
+    res.status(200).json(overdueTasks);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+// Update Task API
+export const updateTask = async (req, res) => {
+  const {
+    _id,
+    title,
+    description,
+    startDate,
+    dueDate,
+    assignedBy,
+    assignments,
+    status,
+  } = req.body;
+
+  // Validation
+  if (!title || !startDate || !dueDate || !assignments) {
+    return res.status(400).json({
+      message: "Title, Start Date, Due Date, and Assignments are required",
+    });
+  }
+  if (new Date(dueDate) < new Date(startDate)) {
+    return res
+      .status(400)
+      .json({ message: "Due Date cannot be before Start Date" });
+  }
+
+  try {
+    // Check if task exists
+    const existingTask = await Tasks.findById(_id);
+    if (!existingTask) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    // Update task fields
+    existingTask.title = title;
+    existingTask.description = description;
+    existingTask.status = status;
+    existingTask.startDate = startDate;
+    existingTask.dueDate = dueDate;
+    existingTask.assignedBy = assignedBy
+      ? new mongoose.Types.ObjectId(assignedBy)
+      : null;
+    existingTask.updatedAt = Date.now();
+
+    // Save the updated task
+    await existingTask.save();
+
+    // Update task assignments
+    for (let assignment of assignments) {
+      const {
+        _id: assignmentId,
+        inmateId,
+        completionStatus,
+        progressNotes,
+      } = assignment;
+
+      // Convert inmateId to ObjectId
+      const inmateObjectId = inmateId
+        ? new mongoose.Types.ObjectId(inmateId._id)
+        : null;
+
+      // Check if the assignment already exists
+      let existingAssignment = await TaskAssignment.findById(assignmentId);
+
+      if (existingAssignment) {
+        // Update the existing assignment
+        existingAssignment.inmateId = inmateObjectId;
+        existingAssignment.completionStatus = completionStatus;
+        existingAssignment.progressNotes = progressNotes;
+        existingAssignment.updatedAt = Date.now();
+        await existingAssignment.save();
+      } else {
+        // Create a new assignment if it doesn't exist
+        const newAssignment = new TaskAssignment({
+          taskId: existingTask._id,
+          inmateId: inmateObjectId,
+          completionStatus,
+          progressNotes,
+        });
+        await newAssignment.save();
+      }
+    }
+
+    res
+      .status(200)
+      .json({
+        message: "Task and assignments updated successfully",
+        task: existingTask,
+      });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
 // Delete Task
 export const deleteTask = async (req, res) => {
   const { id } = req.params;
 
   try {
     // Delete the task
-    const task = await Tasks.findByIdAndDelete(id);
+    const task = await Tasks.findByIdAndUpdate(
+      id,
+      { isActive: false },
+      { new: true }
+    );
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
@@ -281,26 +327,10 @@ export const closeTask = async (req, res) => {
       await assignment.save(); // Save the updated TaskAssignment
     });
 
-    res
-      .status(200)
-      .json({
-        message: "Task closed and progress report updated successfully",
-        task,
-      });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error });
-  }
-};
-
-// Get Overdue Tasks
-export const getOverdueTasks = async (req, res) => {
-  try {
-    const overdueTasks = await Tasks.find({
-      dueDate: { $lt: new Date() }, // Due date is in the past
-      status: { $ne: "Completed" }, // Task is not completed
+    res.status(200).json({
+      message: "Task closed and progress report updated successfully",
+      task,
     });
-
-    res.status(200).json(overdueTasks);
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }

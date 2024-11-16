@@ -35,6 +35,10 @@ const inmateSchema = new mongoose.Schema(
       type: Number,
       required: true, // Total duration of the inmate’s sentence in months
     },
+    isActive: {
+      type: Boolean,
+      default: true, // Defaults to true, will be set to false on delete
+    },
   },
   {
     timestamps: true,

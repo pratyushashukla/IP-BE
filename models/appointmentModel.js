@@ -49,6 +49,10 @@ const appointmentSchema = new mongoose.Schema(
     cancellationReason: {
       type: String,
     },
+    isActive: {
+      type: Boolean,
+      default: true, // Defaults to true, will be set to false on delete
+    },
   },
   {
     timestamps: true,

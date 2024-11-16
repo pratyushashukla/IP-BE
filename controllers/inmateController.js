@@ -5,6 +5,9 @@ import Meal from "../models/mealModel.js";
 import TaskAssignment from "../models/taskAssignmentModel.js";
 import Visitor from "../models/visitorModel.js";
 
+// Declare a default filter variable
+const defaultFilter = { isActive: true };
+
 // Create an Inmate
 export const createInmate = async (req, res) => {
   const {
@@ -50,22 +53,24 @@ export const createInmate = async (req, res) => {
 };
 
 // Get All Inmates
-export const getAllInmates = async (req, res) => {
-  try {
-    const inmates = await Inmate.find();
-    res.status(200).json(inmates);
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error });
-  }
-};
-
+export const getAllInmates = async (req, res) => {    
+    try {
+      const inmates = await Inmate.find(defaultFilter);      
+      res.status(200).json(inmates);
+    } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
+    }
+  };
+  
+  // Get Inmate By ID
 export const getInmateById = async (req, res) => {
   const { id } = req.params;
-
+  const filter = {...defaultFilter, _id: id}
+  
   try {
   // Fetch all data concurrently using Promise.all
   const [inmate, mealPlan, tasksAssigned, visitors, appointments] = await Promise.all([
-    Inmate.findById(id).lean(),
+    Inmate.findById(filter).lean(),
     Meal.findOne({ inmateId: id }).populate("allergyId").lean(),
     TaskAssignment.find({ inmateId: id }).populate("taskId").lean(),
     Visitor.find({ inmateId: id }).lean(),
@@ -95,54 +100,50 @@ export const getInmateById = async (req, res) => {
 
 // Update Inmate
 export const updateInmate = async (req, res) => {
-  const { id } = req.params;
-  const {
-    firstName,
-    lastName,
-    dateOfBirth,
-    gender,
-    contactNumber,
-    status,
-    sentenceDuration,
-  } = req.body;
-
-  try {
-    const inmate = await Inmate.findById(id);
-    if (!inmate) {
-      return res.status(404).json({ message: "Inmate not found" });
+    const { id } = req.params;
+    const { firstName, lastName, dateOfBirth, gender, contactNumber, status, sentenceDuration } = req.body;
+  
+    try {
+      const inmate = await Inmate.findById(id);
+      if (!inmate) {
+        return res.status(404).json({ message: 'Inmate not found' });
+      }
+  
+      // Update the fields
+      inmate.firstName = firstName || inmate.firstName;
+      inmate.lastName = lastName || inmate.lastName;
+      inmate.dateOfBirth = dateOfBirth || inmate.dateOfBirth;
+      inmate.gender = gender || inmate.gender;
+      inmate.contactNumber = contactNumber || inmate.contactNumber;
+      inmate.status = status || inmate.status;
+      inmate.sentenceDuration = sentenceDuration || inmate.sentenceDuration;
+  
+      await inmate.save();
+      res.status(200).json({ message: 'Inmate updated successfully', inmate });
+    } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
     }
-
-    // Update the fields
-    inmate.firstName = firstName || inmate.firstName;
-    inmate.lastName = lastName || inmate.lastName;
-    inmate.dateOfBirth = dateOfBirth || inmate.dateOfBirth;
-    inmate.gender = gender || inmate.gender;
-    inmate.contactNumber = contactNumber || inmate.contactNumber;
-    inmate.status = status || inmate.status;
-    inmate.sentenceDuration = sentenceDuration || inmate.sentenceDuration;
-
-    await inmate.save();
-    res.status(200).json({ message: "Inmate updated successfully", inmate });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error });
-  }
-};
-
-// Delete Inmate
+  };
+  
+// Delete Inmate (soft delete by setting isActive to false)
 export const deleteInmate = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const inmate = await Inmate.findByIdAndDelete(id);
+    // Update isActive to false for soft delete
+    const inmate = await Inmate.findByIdAndUpdate(id, { isActive: false }, { new: true });
     if (!inmate) {
       return res.status(404).json({ message: "Inmate not found" });
     }
 
-    // Cascade delete associated visitors
+    // Optionally, cascade delete associated visitors
     await Visitor.deleteMany({ inmateId: id });
 
-    res.status(200).json({ message: "Inmate deleted successfully" });
+    res.status(200).json({ message: 'Inmate marked as inactive successfully' });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
+
+  

@@ -1,44 +1,52 @@
 import mongoose from "mongoose";
 
-const tasksSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-    maxlength: 255,
+const tasksSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: true,
+      maxlength: 255,
+    },
+    description: {
+      type: String,
+    },
+    assignedBy: {
+      type: mongoose.Schema.Types.ObjectId, // Refers to the Staff member who created the task
+      ref: "User", //Staff collection
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["Pending", "In Progress", "Completed"], // Task status
+      default: "Pending",
+    },
+    startDate: {
+      type: Date,
+    },
+    endDate: {
+      // Date on which task is completed
+      type: Date,
+    },
+    dueDate: {
+      type: Date, // Expected date for completing task
+      required: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true, // Defaults to true, will be set to false on delete
+    },
   },
-  description: {
-    type: String,
-  },
-  assignedBy: {
-    type: mongoose.Schema.Types.ObjectId,  // Refers to the Staff member who created the task
-    ref: 'User',  //Staff collection
-    required: true,
-  },
-  status: {
-    type: String,
-    enum: ['Pending', 'In Progress', 'Completed'],  // Task status
-    default: 'Pending',
-  },
-  startDate: {
-    type: Date,
-  },
-  endDate: {  // Date on which task is completed
-    type: Date,
-  },
-  dueDate: {
-    type: Date, // Expected date for completing task
-    required: true,
+  {
+    timestamps: true,
   }
-},   {
-  timestamps: true,
-});
+);
 
 // Middleware to update `updatedAt` automatically
-tasksSchema.pre('save', function(next) {
+tasksSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
   next();
 });
 
-const Tasks = mongoose.models.Tasks || mongoose.model('Tasks', tasksSchema);
+const Tasks = mongoose.models.Tasks || mongoose.model("Tasks", tasksSchema);
 
 export default Tasks;

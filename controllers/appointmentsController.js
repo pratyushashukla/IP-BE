@@ -4,6 +4,9 @@ import Visitor from "../models/visitorModel.js";
 import Inmate from "../models/inmateModel.js";
 import mongoose from "mongoose";
 
+// Declare a default filter variable
+const defaultFilter = { isActive: true };
+
 // Create an Appointment
 export const scheduleAppointment = async (req, res) => {
   try {
@@ -39,60 +42,32 @@ export const scheduleAppointment = async (req, res) => {
   }
 };
 
-// Get all appointments
+
+// Get all appointments with default filter isActive: true
 export const getAllAppointments = async (req, res) => {
   try {
-    const visit = await Appointment.find()
+    // Use defaultFilter
+    const visit = await Appointment.find(defaultFilter)
       .populate("visitorId")
       .populate("inmateId")
       .populate("staffId");
-    if (!visit) return res.status(404).json({ message: "Visit not found" });
-    res.json(visit);
+    
+    if (!visit || visit.length === 0) {
+      return res.status(404).json({ message: "No visits found" });
+    }
+    
+    res.status(200).json(visit);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Server error", error });
   }
 };
 
-// Update an appointment by ID
-export const updateAppointment = async (req, res) => {
-  if ("visitorId" in req.body && req.body.visitorId) {
-    req.body.visitorId = new mongoose.Types.ObjectId(req.body.visitorId);
-  }
-
-  try {
-    const updatedVisit = await Appointment.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-
-    if (!updatedVisit)
-      return res.status(404).json({ message: "Visit not found" });
-    res
-      .status(200)
-      .json({ result: updatedVisit, message: "Appointment Updated" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Delete an appointment by ID
-export const deleteAppointment = async (req, res) => {
-  try {
-    const deletedVisit = await Appointment.findByIdAndDelete(req.params.id);
-    if (!deletedVisit)
-      return res.status(404).json({ message: "Visit not found" });
-    res.json({ message: "Visit deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Search Appointments by Filter Parameters
+// Search Appointments by Filter Parameters with default filter isActive: true
 export const searchAppointments = async (req, res) => {
   const { name, inmateName, status } = req.query;
 
-  const filter = {};
+  // Initialize the filter with defaultFilter
+  const filter = { ...defaultFilter };
 
   try {
     // Filter by Visitor Name if provided
@@ -104,7 +79,7 @@ export const searchAppointments = async (req, res) => {
         ],
       });
       const visitorIds = visitors.map((visitor) => visitor._id);
-      
+
       if (visitorIds.length > 0) {
         filter.visitorId = { $in: visitorIds };
       } else {
@@ -145,5 +120,45 @@ export const searchAppointments = async (req, res) => {
     res.status(200).json(visits);
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
+  }
+};
+
+// Update an appointment by ID
+export const updateAppointment = async (req, res) => {
+  if ("visitorId" in req.body && req.body.visitorId) {
+    req.body.visitorId = new mongoose.Types.ObjectId(req.body.visitorId);
+  }
+
+  try {
+    const updatedVisit = await Appointment.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+
+    if (!updatedVisit)
+      return res.status(404).json({ message: "Visit not found" });
+    res
+      .status(200)
+      .json({ result: updatedVisit, message: "Appointment Updated" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Delete an appointment by ID
+export const deleteAppointment = async (req, res) => {
+  try {
+    const deletedVisit = await Appointment.findByIdAndUpdate(
+      id,
+      { isActive: false },
+      { new: true }
+    );
+
+    if (!deletedVisit)
+      return res.status(404).json({ message: "Visit not found" });
+    res.json({ message: "Visit deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

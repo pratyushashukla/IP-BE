@@ -1,13 +1,26 @@
-import mongoose from 'mongoose';
-import Visitor from '../models/visitorModel.js';
-import Inmate from '../models/inmateModel.js';
+import Visitor from "../models/visitorModel.js";
+import Inmate from "../models/inmateModel.js";
+
+// Declare a default filter variable
+const defaultFilter = { isActive: true };
 
 // Add Visitor
 export const addVisitor = async (req, res) => {
-  const { firstname, lastname, contactNumber, address, inmateId, relationship } = req.body;
+  const {
+    firstname,
+    lastname,
+    contactNumber,
+    address,
+    inmateId,
+    relationship,
+  } = req.body;
 
   if (!lastname || !contactNumber || !inmateId) {
-    return res.status(400).json({ message: "Last Name, Contact Number, and Inmate ID are required" });
+    return res
+      .status(400)
+      .json({
+        message: "Last Name, Contact Number, and Inmate ID are required",
+      });
   }
 
   try {
@@ -22,20 +35,24 @@ export const addVisitor = async (req, res) => {
       contactNumber,
       address,
       inmateId,
-      relationship
+      relationship,
     });
 
     const createdVisitor = await visitor.save();
-    res.status(201).json({ message: "Visitor added successfully", visitor: createdVisitor });
+    res
+      .status(201)
+      .json({ message: "Visitor added successfully", visitor: createdVisitor });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
 };
 
+
 // List All Visitors
 export const listVisitors = async (req, res) => {
   try {
-    const visitors = await Visitor.find().populate("inmateId", "firstName lastName");
+    const visitors = await Visitor.find(defaultFilter) // Apply default filter
+      .populate("inmateId", "firstName lastName");
     res.status(200).json(visitors);
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
@@ -44,25 +61,75 @@ export const listVisitors = async (req, res) => {
 
 // Get Visitor by ID
 export const getVisitorById = async (req, res) => {
-    const { id } = req.params;
-  
-    try {
-      const visitor = await Visitor.findById(id).populate("inmateId", "firstName lastName");
-  
-      if (!visitor) {
-        return res.status(404).json({ message: "Visitor not found" });
-      }
-  
-      res.status(200).json(visitor);
-    } catch (error) {
-      res.status(500).json({ message: "Server error", error });
+  const { id } = req.params;
+
+  try {
+    const visitor = await Visitor.findOne({ ...defaultFilter, _id: id }) // Apply default filter with ID
+      .populate("inmateId", "firstName lastName");
+
+    if (!visitor) {
+      return res.status(404).json({ message: "Visitor not found" });
     }
-  };
-  
+
+    res.status(200).json(visitor);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+// Search Visitors by Filter Parameters
+export const searchVisitors = async (req, res) => {
+  const { name, inmateName, contactNumber } = req.query;
+
+  const filter = { ...defaultFilter }; // Merge default filter
+
+  if (name) {
+    filter.$or = [
+      { firstname: new RegExp(name, "i") },
+      { lastname: new RegExp(name, "i") },
+    ];
+  }
+  if (contactNumber) {
+    filter.contactNumber = new RegExp(contactNumber, "i");
+  }
+
+  try {
+    // Fetch Inmate IDs based on inmateName if provided
+    let inmateIds = [];
+    if (inmateName) {
+      const inmates = await Inmate.find({
+        $or: [
+          { firstName: new RegExp(inmateName.trim(), "i") },
+          { lastName: new RegExp(inmateName.trim(), "i") },
+        ],
+      });
+      inmateIds = inmates.map((inmate) => inmate._id); // Collect IDs of matching inmates
+    }
+
+    // Add inmateId filter if inmateName was provided
+    if (inmateIds.length > 0) {
+      filter.inmateId = { $in: inmateIds };
+    } else if (inmateName) {
+      // If inmateName was provided but no inmates found, return an empty result
+      return res.status(200).json([]);
+    }
+
+    // Query visitors with the accumulated filter and populate inmate details
+    const visitors = await Visitor.find(filter).populate(
+      "inmateId",
+      "firstName lastName"
+    );
+    res.status(200).json(visitors);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
 
 // Update Visitor
 export const updateVisitor = async (req, res) => {
-  const { firstname, lastname, contactNumber, address, relationship } = req.body;
+  const { firstname, lastname, contactNumber, address, relationship } =
+    req.body;
 
   try {
     const updateData = {};
@@ -72,13 +139,22 @@ export const updateVisitor = async (req, res) => {
     if (address !== undefined) updateData.address = address;
     if (relationship !== undefined) updateData.relationship = relationship;
 
-    const updatedVisitor = await Visitor.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    const updatedVisitor = await Visitor.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
 
     if (!updatedVisitor) {
       return res.status(404).json({ message: "Visitor not found" });
     }
 
-    res.status(200).json({ message: "Visitor updated successfully", visitor: updatedVisitor });
+    res
+      .status(200)
+      .json({
+        message: "Visitor updated successfully",
+        visitor: updatedVisitor,
+      });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
@@ -87,7 +163,11 @@ export const updateVisitor = async (req, res) => {
 // Delete Visitor
 export const deleteVisitor = async (req, res) => {
   try {
-    const visitor = await Visitor.findByIdAndDelete(req.params.id);
+    const visitor = await Visitor.findByIdAndUpdate(
+      id,
+      { isActive: false },
+      { new: true }
+    );
     if (!visitor) {
       return res.status(404).json({ message: "Visitor not found" });
     }
@@ -97,53 +177,3 @@ export const deleteVisitor = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
-
-// Search Visitors by Filter Parameters
-export const searchVisitors = async (req, res) => {
-    const { name, inmateName, contactNumber } = req.query;
-  
-    const filter = {};
-  
-    if (name) {
-      filter.$or = [
-        { firstname: new RegExp(name, "i") },
-        { lastname: new RegExp(name, "i") }
-      ];
-    }
-    if (contactNumber) {
-      filter.contactNumber = new RegExp(contactNumber, "i");
-    }
-  
-    try {
-      // Fetch Inmate IDs based on inmateName if provided
-      let inmateIds = [];
-      if (inmateName) {
-        const inmates = await Inmate.find({
-          $or: [
-            { firstName: new RegExp(inmateName.trim(), "i") }, 
-            { lastName: new RegExp(inmateName.trim(), "i") }
-          ]
-        });
-        console.log("Inmates found with exact match:", inmates);
-        
-        inmateIds = inmates.map(inmate => inmate._id); // Collect IDs of matching inmates
-      }
-  
-      // Add inmateId filter if inmateName was provided
-      if (inmateIds.length > 0) {
-        filter.inmateId = { $in: inmateIds };
-      } else if (inmateName) {
-        // If inmateName was provided but no inmates found, return an empty result
-        return res.status(200).json([]);
-      }
-  
-      // Query visitors with the accumulated filter and populate inmate details
-      const visitors = await Visitor.find(filter).populate("inmateId", "firstName lastName");
-      res.status(200).json(visitors);
-    } catch (error) {
-      res.status(500).json({ message: "Server error", error });
-    }
-  };
-  
-
-

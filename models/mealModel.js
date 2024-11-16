@@ -26,6 +26,10 @@ const mealSchema = new mongoose.Schema(
     dietaryPreferences: {
       type: String, // Text box input for user notes
     },
+    isActive: {
+      type: Boolean,
+      default: true, // Defaults to true, will be set to false on delete
+    },
   },
   {
     timestamps: true,

@@ -19,15 +19,19 @@ const visitorSchema = new mongoose.Schema(
     },
     inmateId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Inmate',
+      ref: "Inmate",
       required: true,
     },
     relationship: {
-        type: String,
+      type: String,
+    },
+    isActive: {
+      type: Boolean,
+      default: true, // Defaults to true, will be set to false on delete
     },
   },
   {
-    timestamps: true, 
+    timestamps: true,
   }
 );
 
