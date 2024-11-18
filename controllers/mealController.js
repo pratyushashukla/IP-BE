@@ -224,6 +224,7 @@ export const updateMealPlan = async (req, res) => {
 
 // Delete Meal Plan
 export const deleteMealPlan = async (req, res) => {
+  const { id } = req.params;
   try {
     const meal = await Meal.findByIdAndUpdate(id, { isActive: false }, { new: true });
     if (!meal) {
