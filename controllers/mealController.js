@@ -31,8 +31,8 @@ export const addMealPlan = async (req, res) => {
   }
 
   try {
-    // Check if a meal plan already exists for this inmate
-    const existingMealPlan = await Meal.findOne({ inmateId });
+    // Check if a meal plan already exists for this inmate with isActive set to true
+    const existingMealPlan = await Meal.findOne({ inmateId, isActive: true });
 
     if (existingMealPlan) {
       return res.status(409).json({ message: "Meal plan already exists for this inmate" });
@@ -53,6 +53,8 @@ export const addMealPlan = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
+
 
 // Get All Meal Plans
 export const listMeals = async (req, res) => {
