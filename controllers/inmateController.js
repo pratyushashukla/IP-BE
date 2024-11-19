@@ -130,20 +130,30 @@ export const deleteInmate = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Update isActive to false for soft delete
+    // Check if the inmate has associated visitors
+    const visitorCount = await Visitor.countDocuments({ inmateId: id });
+    const mealCount = await Meal.countDocuments({ inmateId: id });
+    const taskAssignmentCount = await TaskAssignment.countDocuments({ inmateId: id });
+    const appointmentCount = await Appointment.countDocuments({ inmateId: id });
+
+    if (visitorCount > 0 || mealCount > 0 || taskAssignmentCount > 0 || appointmentCount > 0) {
+      return res.status(400).json({
+        message: `This inmate has references in other modules. Please handle the associated data first (Visitor, Meal, Task Assignment, Appointment).`
+      });
+    }
+
+    // Proceed with soft delete of the inmate
     const inmate = await Inmate.findByIdAndUpdate(id, { isActive: false }, { new: true });
     if (!inmate) {
       return res.status(404).json({ message: "Inmate not found" });
     }
 
-    // Optionally, cascade delete associated visitors
-    await Visitor.deleteMany({ inmateId: id });
-
-    res.status(200).json({ message: 'Inmate marked as inactive successfully' });
+    res.status(200).json({ message: 'Inmate deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
 
 
   

@@ -1,5 +1,6 @@
 import Visitor from "../models/visitorModel.js";
 import Inmate from "../models/inmateModel.js";
+import Appointment from "../models/appointmentModel.js";
 
 // Declare a default filter variable
 const defaultFilter = { isActive: true };
@@ -162,12 +163,22 @@ export const updateVisitor = async (req, res) => {
 
 // Delete Visitor
 export const deleteVisitor = async (req, res) => {
+  const { id } = req.params;
+
   try {
-    const visitor = await Visitor.findByIdAndUpdate(
-      id,
-      { isActive: false },
-      { new: true }
-    );
+    // Check if the visitor is associated with any appointments
+    const appointmentCount = await Appointment.countDocuments({ visitorId: id });
+
+    if (appointmentCount > 0) {
+      // Visitor is associated with one or more appointments
+      return res.status(400).json({
+        message: `This visitor is associated with appointments. Please delete the associated appointments first before deleting the visitor.`
+      });
+    }
+
+    // Proceed with soft delete of the visitor (mark as inactive)
+    const visitor = await Visitor.findByIdAndUpdate(id, { isActive: false }, { new: true });
+
     if (!visitor) {
       return res.status(404).json({ message: "Visitor not found" });
     }
@@ -177,3 +188,4 @@ export const deleteVisitor = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
+

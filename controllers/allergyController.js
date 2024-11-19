@@ -141,13 +141,19 @@ export const updateAllergy = async (req, res) => {
 
 // Delete Allergy
 export const deleteAllergy = async (req, res) => {
-  try {
-    const allergy = await Allergy.findByIdAndUpdate(
-      id,
-      { isActive: false },
-      { new: true }
-    );
+  const { id } = req.params;
 
+  try {
+    // Check if the allergy is associated with any meals
+    const mealCount = await Meal.countDocuments({ allergyId: id });
+    if (mealCount > 0) {
+      return res.status(400).json({
+        message: `This allergy is associated with one or more meals. Please remove or update the meals before deleting the allergy.`
+      });
+    }
+
+    // Proceed with soft delete of the allergy
+    const allergy = await Allergy.findByIdAndUpdate(id, { isActive: false }, { new: true });
     if (!allergy) {
       return res.status(404).json({ message: "Allergy not found" });
     }
@@ -157,3 +163,4 @@ export const deleteAllergy = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
