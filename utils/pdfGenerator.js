@@ -31,14 +31,18 @@ export const generateMealPlanPDF = (meal, filePath) => {
     doc.fontSize(12).text(`Meal Type: ${meal.mealType}`);
     doc.text(`Meal Plan: ${meal.mealPlan}`);
     doc.text(`Dietary Preferences: ${meal.dietaryPreferences || "None"}`);
-    doc.text(
-      `Allergies: ${meal.allergyId ? meal.allergyId.allergy_name : "None"}`
-    );
+
+    // Correct allergy formatting
+    const allergies = meal.allergyId && meal.allergyId.length > 0
+      ? meal.allergyId.map((a) => a.allergyName).join(", ")
+      : "None";
+    doc.text(`Allergies: ${allergies}`);
 
     // Finalize the PDF and end the stream
     doc.end();
   });
 };
+
 
 
 export const generateReportPDF = (type, data) => {
@@ -100,7 +104,7 @@ export const generateReportPDF = (type, data) => {
           doc.text(`Plan Duration: ${meal.mealPlan}`);
           doc.text(`Dietary Preferences: ${meal.dietaryPreferences || 'N/A'}`);
           const allergies = meal.allergyId && meal.allergyId.length > 0 
-            ? meal.allergyId.map(a => a.allergyName).join(', ') 
+            ? meal.allergyId.map((a) => a.allergyName).join(', ') 
             : 'None';
           doc.text(`Allergies: ${allergies}`);
           doc.moveDown(0.5);
