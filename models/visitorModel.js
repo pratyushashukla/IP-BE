@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const visitorSchema = new mongoose.Schema(
   {
     firstname: {
-      type: String,
+      type: String,      
     },
     lastname: {
       type: String,
@@ -13,6 +13,7 @@ const visitorSchema = new mongoose.Schema(
       type: String,
       unique: true, // This is consider as unique for all visitor
       maxlength: 15,
+      required: true,
     },
     address: {
       type: String,
@@ -24,6 +25,7 @@ const visitorSchema = new mongoose.Schema(
     },
     relationship: {
       type: String,
+      required: true,
     },
     isActive: {
       type: Boolean,

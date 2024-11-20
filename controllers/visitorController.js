@@ -16,11 +16,11 @@ export const addVisitor = async (req, res) => {
     relationship,
   } = req.body;
 
-  if (!lastname || !contactNumber || !inmateId) {
+  if (!lastname || !contactNumber || !inmateId || !relationship) {
     return res
       .status(400)
       .json({
-        message: "Last Name, Contact Number, and Inmate ID are required",
+        message: "Last Name, Contact Number, Inmate ID and relationship are required",
       });
   }
 

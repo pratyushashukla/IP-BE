@@ -148,6 +148,7 @@ export const updateAppointment = async (req, res) => {
 
 // Delete an appointment by ID
 export const deleteAppointment = async (req, res) => {
+  const { id } = req.params;
   try {
     const deletedVisit = await Appointment.findByIdAndUpdate(
       id,
