@@ -167,7 +167,7 @@ export const deleteVisitor = async (req, res) => {
 
   try {
     // Check if the visitor is associated with any appointments
-    const appointmentCount = await Appointment.countDocuments({ visitorId: id });
+    const appointmentCount = await Appointment.countDocuments({ visitorId: id, isActive: true });
 
     if (appointmentCount > 0) {
       // Visitor is associated with one or more appointments
